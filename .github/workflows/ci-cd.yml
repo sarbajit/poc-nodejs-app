@@ -18,7 +18,6 @@ jobs:
       #     npm config set registry "http://${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/"
       #     npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/:_auth" "$AUTH_B64"
       #     npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:_auth" "$AUTH_B64"
-      #     npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:always-auth" "true"
 
       - name: Configure npm registry to Nexus npm-group (WINDOWS)
         shell: powershell
@@ -28,7 +27,6 @@ jobs:
           npm config set registry "http://${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/"
           npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/:_auth" "$authB64"
           npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:_auth" "$authB64"
-          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:always-auth" "true"
 
       - name: Install dependencies and package artifact
         run: |
