@@ -12,12 +12,22 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v7
 
-      - name: Configure npm registry to Nexus npm-group
+      # - name: Configure npm registry to Nexus npm-group (LINUX)
+      #   run: |
+      #     AUTH_B64=$(printf '%s:%s' "${{ secrets.NEXUS_USERNAME }}" "${{ secrets.NEXUS_PASSWORD }}" | base64 | tr -d '\n')
+      #     npm config set registry "http://${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/"
+      #     npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/:_auth" "$AUTH_B64"
+      #     npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:_auth" "$AUTH_B64"
+      #     npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:always-auth" "true"
+
+      - name: Configure npm registry to Nexus npm-group (WINDOWS)
+        shell: pwsh
         run: |
-          AUTH_B64=$(printf '%s:%s' "${{ secrets.NEXUS_USERNAME }}" "${{ secrets.NEXUS_PASSWORD }}" | base64 | tr -d '\n')
+          $rawAuth = "${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }}"
+          $authB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($rawAuth))
           npm config set registry "http://${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/"
-          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/:_auth" "$AUTH_B64"
-          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:_auth" "$AUTH_B64"
+          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/:_auth" "$authB64"
+          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:_auth" "$authB64"
           npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:always-auth" "true"
 
       - name: Install dependencies and package artifact
