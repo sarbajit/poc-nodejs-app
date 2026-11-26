@@ -1,5 +1,5 @@
 ARG NEXUS_HOST=65.0.55.183
-FROM ${NEXUS_HOST}:8083/node:20-alpine
+FROM ${NEXUS_HOST}:8083/node:24-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
