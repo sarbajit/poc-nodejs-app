@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: [self-hosted, poc-laptop]
+    runs-on: [self-hosted, nodejs-runner]
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
