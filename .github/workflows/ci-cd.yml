@@ -12,26 +12,25 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v7
 
-      # - name: Configure npm registry to Nexus npm-group (LINUX)
-      #   run: |
-      #     AUTH_B64=$(printf '%s:%s' "${{ secrets.NEXUS_USERNAME }}" "${{ secrets.NEXUS_PASSWORD }}" | base64 | tr -d '\n')
-      #     npm config set registry "http://${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/"
-      #     npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/:_auth" "$AUTH_B64"
-      #     npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:_auth" "$AUTH_B64"
+      - name: Set Nexus npm auth (WINDOWS)
+        shell: powershell
+        env:
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          $authB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$($env:NEXUS_USERNAME):$($env:NEXUS_PASSWORD)"))
+          # The base64 form is not auto-masked like the raw secret - mask it in logs
+          Write-Host "::add-mask::$authB64"
+          "NEXUS_NPM_AUTH=$authB64" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Configure npm registry to Nexus npm-group (WINDOWS)
+      - name: Install dependencies (from Nexus) and package artifact
         shell: powershell
         run: |
-          $rawAuth = "${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }}"
-          $authB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($rawAuth))
-          npm config set registry "http://${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/"
-          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/:_auth" "$authB64"
-          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:_auth" "$authB64"
-
-      - name: Install dependencies and package artifact
-        run: |
-          npm ci
+          Write-Host "npm registry: $(npm config get registry)"
+          npm ci --loglevel http    # 'http' level logs each fetch URL - should all be Nexus
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm pack
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # docker/login-action passes the password to docker directly (no PowerShell
       # pipe), so no BOM/encoding bytes get added to it. Registry = host:port, no http://
@@ -65,7 +64,10 @@ jobs:
           $nexusImage = "${{ secrets.NEXUS_HOST }}:8082/nodejs-poc:$tag"
           $ghcrImage  = "ghcr.io/$owner/nodejs-poc:$tag"
 
-          docker build --build-arg NEXUS_HOST="${{ secrets.NEXUS_HOST }}" -t $nexusImage -t $ghcrImage .
+          # Auth goes in as a BuildKit secret (read from env NEXUS_NPM_AUTH): available to npm ci, never stored in an image layer
+          docker build --build-arg NEXUS_HOST="${{ secrets.NEXUS_HOST }}" `
+            --secret "id=npm_auth,env=NEXUS_NPM_AUTH" `
+            -t $nexusImage -t $ghcrImage .
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           docker push $nexusImage
