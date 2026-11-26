@@ -34,10 +34,16 @@ jobs:
           npm pack
 
       - name: Login to Nexus Docker and GHCR
+        shell: powershell
         run: |
-          echo "ci-runner" | docker login http://65.0.55.183:8083 -u "ci-runner-user" --password-stdin
-          echo "ci-runner" | docker login http://65.0.55.183:8082 -u "${{ secrets.NEXUS_USERNAME }}" --password-stdin
-          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+          $dockerCfg = Join-Path $env:RUNNER_TEMP ".docker"
+          New-Item -ItemType Directory -Force -Path $dockerCfg | Out-Null
+          '{"auths":{}}' | Set-Content -Path (Join-Path $dockerCfg "config.json") -Encoding UTF8
+          $env:DOCKER_CONFIG = $dockerCfg
+
+          Write-Output "${{ secrets.NEXUS_PASSWORD }}" | docker login "${{ secrets.NEXUS_HOST }}:8083" -u "${{ secrets.NEXUS_USERNAME }}" --password-stdin
+          Write-Output "${{ secrets.NEXUS_PASSWORD }}" | docker login "${{ secrets.NEXUS_HOST }}:8082" -u "${{ secrets.NEXUS_USERNAME }}" --password-stdin
+          Write-Output "${{ secrets.GHCR_TOKEN }}" | docker login "ghcr.io" -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
       - name: Build and push image to Nexus and GHCR
         run: |
