@@ -1,0 +1,43 @@
+name: Node.js CI - Nexus & GHCR
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: [self-hosted, poc-laptop]
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure npm registry to Nexus npm-group
+        run: |
+          AUTH_B64=$(printf '%s:%s' "${{ secrets.NEXUS_USERNAME }}" "${{ secrets.NEXUS_PASSWORD }}" | base64 | tr -d '\n')
+          npm config set registry "http://${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/"
+          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-group/:_auth" "$AUTH_B64"
+          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:_auth" "$AUTH_B64"
+          npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:always-auth" "true"
+
+      - name: Install dependencies and package artifact
+        run: |
+          npm ci
+          npm pack
+
+      - name: Login to Nexus Docker and GHCR
+        run: |
+          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login http://${{ secrets.NEXUS_HOST }}:8083 -u "${{ secrets.NEXUS_USERNAME }}" --password-stdin
+          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login http://${{ secrets.NEXUS_HOST }}:8082 -u "${{ secrets.NEXUS_USERNAME }}" --password-stdin
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
+
+      - name: Build and push image to Nexus and GHCR
+        run: |
+          IMAGE_TAG="${{ github.sha }}"
+          docker build \
+            --build-arg NEXUS_HOST="${{ secrets.NEXUS_HOST }}" \
+            -t "${{ secrets.NEXUS_HOST }}:8082/nodejs-poc:${IMAGE_TAG}" \
+            -t "ghcr.io/${{ github.repository_owner }}/nodejs-poc:${IMAGE_TAG}" \
+            .
+          docker push "${{ secrets.NEXUS_HOST }}:8082/nodejs-poc:${IMAGE_TAG}"
+          docker push "ghcr.io/${{ github.repository_owner }}/nodejs-poc:${IMAGE_TAG}"
