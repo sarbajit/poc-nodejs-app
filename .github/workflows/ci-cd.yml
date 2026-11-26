@@ -10,7 +10,7 @@ jobs:
     runs-on: [self-hosted, nodejs-runner]
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configure npm registry to Nexus npm-group
         run: |
