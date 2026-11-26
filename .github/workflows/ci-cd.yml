@@ -21,7 +21,7 @@ jobs:
       #     npm config set "//${{ secrets.NEXUS_HOST }}:8081/repository/npm-hosted/:always-auth" "true"
 
       - name: Configure npm registry to Nexus npm-group (WINDOWS)
-        shell: pwsh
+        shell: powershell
         run: |
           $rawAuth = "${{ secrets.NEXUS_USERNAME }}:${{ secrets.NEXUS_PASSWORD }}"
           $authB64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($rawAuth))
