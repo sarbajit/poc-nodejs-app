@@ -1,0 +1,18 @@
+{
+  "name": "poc-nodejs-app",
+  "version": "1.0.0",
+  "description": "Hello World Node.js POC",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
